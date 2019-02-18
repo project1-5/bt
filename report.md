@@ -199,7 +199,7 @@ Johan: 4 hours
 Johan: 5 hours
 
 7. writing code;
-Johan: 1 hour
+Johan: 6 hour
 
 8. running code?
 Johan: Many hours?
