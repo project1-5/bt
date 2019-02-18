@@ -22,7 +22,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import static org.mockito.Mockito.*;
 
+import java.util.HashMap;
+import java.util.ArrayList;
+import java.nio.file.*;
+import java.io.*;
+
 public class ConnectionSourceTest {
+
+    static void reg(String id, Integer branchCount) {
+	try {
+	    Files.write(Paths.get(System.getProperty("user.home")+"/"+id+".report"), (Integer.toString(branchCount)+"\n").getBytes(), StandardOpenOption.APPEND, StandardOpenOption.CREATE);
+	}catch (IOException e) {
+	    // Nothing to do.
+	}
+    }
     /**
        Given an already existing connection return that one.
      **/
