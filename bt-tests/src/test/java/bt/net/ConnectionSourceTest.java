@@ -11,6 +11,8 @@ import bt.runtime.Config;
 import bt.service.IRuntimeLifecycleBinder;
 import bt.service.RuntimeLifecycleBinder;
 import java.util.*;
+import java.time.Duration;
+import java.time.Instant;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,12 +44,14 @@ public class ConnectionSourceTest {
     @Test
     public void acceptExistingConnection()
 	throws java.lang.InterruptedException, java.util.concurrent.ExecutionException {
-	HashSet hs = mock(HashSet.class);
+	Set<PeerConnectionAcceptor> hs = mock(HashSet.class);
+	when(hs.size()).thenReturn(1);
 	PeerConnectionFactory pcf = mock(PeerConnectionFactory.class);
 	PeerConnectionPool pcp = mock(PeerConnectionPool.class);
 	when(pcp.getConnection(isA(ConnectionKey.class))).thenReturn(mock(PeerConnection.class));
 	RuntimeLifecycleBinder rlb = mock(RuntimeLifecycleBinder.class);
 	Config c = mock(Config.class);
+	when(c.getMaxPendingConnectionRequests()).thenReturn(5);
 	ConnectionSource cs = new ConnectionSource(hs, pcf, pcp, rlb, c);
 	Peer p = mock(Peer.class);
 	TorrentId t = mock(TorrentId.class);
@@ -57,37 +61,40 @@ public class ConnectionSourceTest {
 
     /**
        Ensure that unreachable peers are rejected.
-     **/
+    **/
     @Test
     public void rejectUnreachable() 
-	throws java.lang.InterruptedException, java.util.concurrent.ExecutionException {
-	Set<PeerConnectionAcceptor> hs = new HashSet<PeerConnectionAcceptor>();
-	PeerConnectionAcceptor pca = mock(PeerConnectionAcceptor.class);
+	throws Exception {
+	Set<PeerConnectionAcceptor> hs = mock(HashSet.class);
+	when(hs.size()).thenReturn(1);
 	PeerConnectionFactory pcf = mock(PeerConnectionFactory.class);
 	PeerConnectionPool pcp = mock(PeerConnectionPool.class);
 	PeerConnection mocked = mock(PeerConnection.class);
 	when(pcp.getConnection(isA(ConnectionKey.class))).thenReturn(null);
 	RuntimeLifecycleBinder rlb = mock(RuntimeLifecycleBinder.class);
+
+	Instant first = Instant.now();
+	Instant second = Instant.now();
 	Config c = mock(Config.class);
+	when(c.getUnreachablePeerBanDuration()).thenReturn(Duration.between(first, second));
+	when(c.getMaxPendingConnectionRequests()).thenReturn(5);
 	ConnectionSource cs = new ConnectionSource(hs, pcf, pcp, rlb, c);
+
+
+	Field field = ConnectionSource.class.getDeclaredField("unreachablePeers");
+	field.setAccessible(true);
+	ConcurrentMap<Peer, Long> unreachablePeers = mock(ConcurrentMap.class);
+	when(unreachablePeers.get(isA(Peer.class))).thenReturn(Long.MAX_VALUE);
+	when(unreachablePeers.remove(isA(Peer.class), isA(Long.class))).thenReturn(true);
+	field.set(cs, unreachablePeers);
+	Peer p = mock(Peer.class);
+	TorrentId t = mock(TorrentId.class);
+	CompletableFuture<ConnectionResult> fut = cs.getConnectionAsync(p, t);
 	try {
-	    // Guarantee the ban
-	    Field field = ConnectionSource.class.getDeclaredField("unreachablePeers");
-	    field.setAccessible(true);
-	    ConcurrentMap<Peer, Long> unreachablePeers = (ConcurrentMap<Peer, Long>)field.get(cs);
-	    when(unreachablePeers.get(isA(Peer.class))).thenReturn(Long.MAX_VALUE);
-	    Peer p = mock(Peer.class);
-	    TorrentId t = mock(TorrentId.class);
-	    CompletableFuture<ConnectionResult> fut = cs.getConnectionAsync(p, t);
-	    try {
-		ConnectionResult cr = fut.get();
-		assertTrue(!cr.isSuccess());
-		assertTrue(cr.getMessage().get().equals("Peer is unreachable"));
-	    } catch(Exception e) {
-		assertTrue(false);
-	    }
-	}
-	catch(Exception e) {
+	    ConnectionResult cr = fut.get();
+	    assertTrue(!cr.isSuccess());
+	    assertTrue(cr.getMessage().get().equals("Peer is unreachable"));
+	} catch(Exception e) {
 	    assertTrue(false);
 	}
     }
