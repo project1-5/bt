@@ -48,7 +48,9 @@ We only used Lizard and the results are clear.
 
 
 2. Are the functions just complex, or also long?
+Answered below.
 3. What is the purpose of the functions?
+Answered below.
 5. Is the documentation clear w.r.t. all the possible outcomes?
 Answered below.
 
@@ -94,7 +96,32 @@ According to JaCoCo:
 0%
 According to manual instrumentation:
 
-### (4) Assignments#update
+
+
+### (2,3,5) MessagingAgentCompiler#compileType (Jagan Moorthy):
+The function is pretty long(60 lines). 
+The function goes through a given class' functions and check if they have either(and not both) of the two given annotations, and check if such annotated functions are public, and places them into corresponding collections passed as parameters. It returns the count of such functions.
+Not much documentation.
+
+
+Branch coverage:
+Before: 9/11 (Assuming Loggers are covered in debug mode)
+After: 11/11
+
+
+
+### (2,3,5) RarestFirstSelectionStrategy#getNextPieces (Jagan Moorthy):
+50 line function, which can be broken down.
+The function gets statistics per torrent piece and a piece selection criteria as the input and returns a said number of pieces. In addition to the passed criteria, it selects the least frequent peices in a random way.
+No documentation available in the overridden function, but the base class has some info.
+
+Branch coverage:
+Before: 6/9 (Assuming Loggers are covered in debug mode)
+After: 9/9
+
+
+
+### (2,3,5) Assignments#update
 Purpose:
 
 This function returns a set of other peers that contain pieces that are interesting to the current peer and that can be
@@ -108,7 +135,7 @@ Manual cyclomatic complexity (M = pi - s + 2):
 M = 17 - 1 + 2 = 18
 
 
-### (8) Assignments#assign
+### (2,3,5) Assignments#assign
 Purpose:
 
 This function selects a piece the current peer has and assigns it to another peer that has been given to the function.
@@ -123,27 +150,20 @@ M = 16 - 2 + 2 = 16
 
 
 
-
-### (2,3,5) MessagingAgentCompiler#compileType (Jagan Moorthy):
-The function is pretty long(60 lines). 
-The function goes through a given class' functions and check if they have either(and not both) of the two given annotations, and check if such annotated functions are public, and places them into corresponding collections passed as parameters. It returns the count of such functions.
-Not much documentation.
-
-### (2,3,5) RarestFirstSelectionStrategy#getNextPieces (Jagan Moorthy):
-50 line function, which can be broken down.
-The function gets statistics per torrent piece and a piece selection criteria as the input and returns a said number of pieces. In addition to the passed criteria, it selects the least frequent peices in a random way.
-No documentation available in the overridden function, but the base class has some info.
-
 ## Coverage
 
 ### Tools
 
-The project uses JaCoCo for coverage and already had it integrated with its build environment.
+Johan: The project uses JaCoCo for coverage and already had it integrated with its build environment.
 How to use the tool in this project was completely undocumented so at first I had to look around for
 instructions on how to use the tool through Google. I did this for about 2 hours without any real gains being made.
 Finally I found a Travis script in the scripts folder called "travis-run-tests.sh" which ran the tests with code coverage on.
 So yes, the experience in using this tool was terrible because of a lack of in-project documentation.
 The JaCoCo project's documentation however was fine.
+
+
+Jagan:
+I used Intellij's inbuilt code coverage plug-in to avoid hassles. It was very well documented. I got to use Mockito for the first time and it was a good exposure.
 
 Nikhil: Upvote to what Johan said about the poor documentation of Jacoco on the bt README. I had a bit more trouble
 trying to get it to work on my Ubuntu machine. Neither the bash script nor the mvn install command inside the script
@@ -151,10 +171,6 @@ worked for me initially. Errors pointing to other maven plugins would prevent an
 After hours and hours of troubleshooting I finally found out that simply updating the Jacoco plugin version from 
 0.7.8 to 0.8.2 would work, and it did.
 
-
-//Document your experience in using a "new"/different coverage tool.
-
-//How well was the tool documented? Was it possible/easy/difficult to integrate it with your build environment?
 
 
 ### DYI
@@ -294,11 +310,12 @@ For each team member, how much time was spent in
 
 2. discussions within parts of the group;
 - Johan: 10 minutes or so
-- Nikhil: ~20 minutes asking about Jacoco
+- Nikhil:  around 20 minutes asking about Jacoco
 
 3. reading documentation;
 - Johan: 1 hour
-- Nikhil: ~30 min on bt, 1 hour on Jacoco
+- Nikhil: around 30 min on bt, 1 hour on Jacoco
+- Jagan: 30 mins
 
 4. configuration;
 - Nikhil: 4 hours (Spent 2 days trying to configure Jacoco)
@@ -306,11 +323,12 @@ For each team member, how much time was spent in
 5. analyzing code/output;
 - Johan: 4 hours
 - Nikhil: 2 hours
-- Jagan: 6 hours
+- Jagan: 6 hours. Was struggling with test cases before using Mockito, as I tried to build all dependency objects myself.
 
 6. writing documentation (writing report?));
 - Johan: 5 hours
 - Nikhil: 2.5 hours
+- Jagan: 1 hour
 
 7. writing code;
 - Johan: 6 hours
