@@ -296,6 +296,22 @@ in the function, 4 of which are in a do-while loop. Removing that if statement a
 I would also create a separate function for the iteration of pieces (peers) as it is already nested in the else block of the endgame check. In fact, a return could be
 made after identifying a peer as endgame to avoid ever having to walk into the else branch.
 
+
+RarestFirstSelectionStrategy#getNextPieces:
+Note: The line numbers mentioned are with the manual code coverage logging lines included.
+The first level of breaking up would be to take off lines 114 to 129 as a separate function for randomization.
+The next level can be would be to isolate the logic in lines from 89 to 96 as it iterates through the piece stats to "pack" certain pieces.
+
+MessagingAgentCompiler#compileType:
+Note: The line numbers mentioned are with the manual code coverage logging lines included.
+
+1. We can move the validation of function annotations and access modifiers 127-134 to a validateMethod() function
+2. The remaining part is primarily clogged with logging and is a simple enough if-else condition, but given the similarity in the content, it has a minor scope for code re-use by having another method that can be called within the if and else(But the called function will in-turn have an if-else and may take us back to square one).
+
+
+
+
+
 Carried out refactoring (optional)
 
 ## Effort spent
