@@ -110,34 +110,44 @@ public class MessagingAgentCompiler {
      * @return Total number of consumer/producer methods compiled
      */
     private int compileType(Class<?> type, Collection<ConsumerInfo> consumersAcc, Collection<ProducerInfo> producerAcc) {
+        int codeCoverageBranch = 1;
+        CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
 
         int methodCount = 0;
 
         for (Method method : type.getDeclaredMethods()) {
 
+            CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
             Consumes consumes = method.getAnnotation(Consumes.class);
             Produces produces = method.getAnnotation(Produces.class);
 
             if (consumes != null || produces != null) {
 
+                CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
                 if (!Modifier.isPublic(method.getModifiers())) {
+                    CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
                     throw new IllegalStateException("Method representing consumer/producer must be public: " + method.getName());
                 }
                 if (consumes != null && produces != null) {
+                    CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
                     throw new IllegalStateException("Method can not be both consumer and producer: " + method.getName());
                 }
 
                 if (consumes != null) {
+                    CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
                     ConsumerInfo consumerInfo = buildConsumerInfo(method);
                     if (LOGGER.isDebugEnabled()) {
+                        CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
                         LOGGER.debug("Compiled consumer method {consumedType=" +
                                 consumerInfo.getConsumedMessageType().getName() +
                                 "}: " + method.getName());
                     }
                     consumersAcc.add(consumerInfo);
                 } else if (produces != null) {
+                    CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
                     ProducerInfo producerInfo = buildProducerInfo(method);
                     if (LOGGER.isDebugEnabled()) {
+                        CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
                         LOGGER.debug("Compiled producer method: " + method.getName());
                     }
                     producerAcc.add(producerInfo);
@@ -149,11 +159,13 @@ public class MessagingAgentCompiler {
 
         Class<?> supertype = type.getSuperclass();
         if (supertype != null && !Object.class.equals(supertype)) {
+            CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
             methodCount += compileType(supertype, consumersAcc, producerAcc);
         }
 
         Class<?>[] interfaceTypes = type.getInterfaces();
         for (Class<?> interfaceType : interfaceTypes) {
+            CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
             methodCount += compileType(interfaceType, consumersAcc, producerAcc);
         }
 
