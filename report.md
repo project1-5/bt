@@ -16,22 +16,47 @@ bt is a BitTorrent library for the Java programming language. It supports custom
 
 Building was easy and described in the README. Built fine on my Linux system using a modern JDK (OpenJDK 11).
 
+Nikhil: Building was very easy, trying to run the Jacoco coverage suite was another question. Ended up spending multiple hours trying
+to troubleshoot why Jacoco would not create coverage reports. Running the test cases with the coverage configuration pulled up
+many errors for me, pointing to other maven plugins (maven-surefire-plugin). Solution was finally found by updating Jacoco version
+in the pom.xml file. Very frustrating experience trying to get Jacoco to work.
+
 ## Complexity
 
 1. What are your results for the ten most complex functions? (If ranking
 is not easily possible: ten complex functions)?
-   * Did all tools/methods get the same result?
-   * Are the results clear?
+
+```
+ !!!! Warnings (cyclomatic_complexity > 15 or length > 1000 or parameter_count > 100) !!!!
+================================================
+  NLOC    CCN   token  PARAM  length  location
+------------------------------------------------
+     181     46   1325      0     285 PullMetaDataConnection::processInput@329-613@./bt-dht/the8472/mldht/src/the8472/bt/PullMetaDataConnection.java
+     113     33    787      1     132 PrettyPrinter::prettyPrintInternal@83-214@./bt-dht/the8472/mldht/src/the8472/bencode/PrettyPrinter.java
+     113     32   1214      3     148 MessageDecoder::parseResponse@162-309@./bt-dht/the8472/mldht/src/lbms/plugins/mldht/kad/messages/MessageDecoder.java
+     107     27   1187      3     137 MessageDecoder::parseRequest@325-461@./bt-dht/the8472/mldht/src/lbms/plugins/mldht/kad/messages/MessageDecoder.java
+     103     21   1079      2     150 RPCServer::handlePacket@375-524@./bt-dht/the8472/mldht/src/lbms/plugins/mldht/kad/RPCServer.java
+      76     21    596      0     106 TorrentFetcher::FetchTask::connections@501-606@./bt-dht/the8472/mldht/src/the8472/mldht/TorrentFetcher.java
+     136     21   1122      4     196 MSEHandshakeProcessor::negotiateIncoming@291-486@./bt-core/src/main/java/bt/net/crypto/MSEHandshakeProcessor.java
+      75     20    478      2      81 ConnectionSource::getConnectionAsync@85-165@./bt-core/src/main/java/bt/net/ConnectionSource.java
+     120     19   1066      1     158 MetadataService::buildTorrent@109-266@./bt-core/src/main/java/bt/metainfo/MetadataService.java
+     108     19    668      0     143 Server::accept@96-238@./bt-dht/the8472/mldht/src/the8472/mldht/cli/Server.java
+```
+
+We only used Lizard and the results are clear.
+
+
+
 2. Are the functions just complex, or also long?
 3. What is the purpose of the functions?
-4. Are exceptions taken into account in the given measurements?
 5. Is the documentation clear w.r.t. all the possible outcomes?
+Answered below.
+
+4. Are exceptions taken into account in the given measurements?
+No.
 
 
-### (2,3) ConnectionSource#getConnectionAsync:
-
-TODO: Do a manual count of the CCN.
-Purpose, CCN:
+### (2,3,5) ConnectionSource#getConnectionAsync (Johan):
 
 The CCN is partially inflated because of branches which are solely there for logging.
 The code is fairly long, clocking in at 75 lines for one method and the method is not documented. There are
@@ -43,15 +68,21 @@ This new connection is established and run asynchronously through the Completabl
 To create a new CompletableFuture a lambda is provided in the code. The branches in the lambda should
 technically be counted separately, however lizard does not do so.
 
-Code coverage:
+Code coverage before:
 
 According to JaCoCo:
 0%
 According to manual instrumentation:
 0%
 
-### (2,3) MetadataService#buildTorrent
-Purpose, CCN:
+Code coverage after:
+
+According to JaCoCo:
+16% branches, 33% code
+According to manual instrumentation:
+3/10 branches taken
+
+### (2,3,5) MetadataService#buildTorrent (Johan):
 
 Many branches here are because of null checks. They are also lonely if-branches without an else-part.
 The code creates a torrent from the metadata from some parser (the parser holds the content of some torrent file).
@@ -63,6 +94,45 @@ According to JaCoCo:
 0%
 According to manual instrumentation:
 
+### (4) Assignments#update
+Purpose:
+
+This function returns a set of other peers that contain pieces that are interesting to the current peer and that can be
+given assignments. The CCN is high for a few reasons. There are multiple null checks, and checks to see if certain 
+logging traces are enabled or not. Given a certain peer (which itself requires some branches to identify if it's a valid peer),
+checking to see if it has important/interesting pieces results in multiple loop iterations and if statements.
+
+This is a fairly long function, at 63 lines of code. Again, no documentation is given so logging wasn't super helpful by itself.
+
+Manual cyclomatic complexity (M = pi - s + 2):
+M = 17 - 1 + 2 = 18
+
+
+### (8) Assignments#assign
+Purpose:
+
+This function selects a piece the current peer has and assigns it to another peer that has been given to the function.
+There are multiple reasons why many branches exist in this funciton. A few have to do with the nature of the assigning
+which requires constant checking of the bit iterator to see if more pieces need to be assigned. Another has to do with
+seeing if certain log traces are enabled our not. No exceptions are made here, so they are not taken into account in the CCN.
+
+This is a fairly long function, at 65 lines of code. Again, no documentation is given so logging wasn't super helpful by itself.
+
+Manual cyclomatic complexity (M = pi - s + 2):
+M = 16 - 2 + 2 = 16
+
+
+
+
+### (2,3,5) MessagingAgentCompiler#compileType (Jagan Moorthy):
+The function is pretty long(60 lines). 
+The function goes through a given class' functions and check if they have either(and not both) of the two given annotations, and check if such annotated functions are public, and places them into corresponding collections passed as parameters. It returns the count of such functions.
+Not much documentation.
+
+### (2,3,5) RarestFirstSelectionStrategy#getNextPieces (Jagan Moorthy):
+50 line function, which can be broken down.
+The function gets statistics per torrent piece and a piece selection criteria as the input and returns a said number of pieces. In addition to the passed criteria, it selects the least frequent peices in a random way.
+No documentation available in the overridden function, but the base class has some info.
 
 ## Coverage
 
@@ -75,10 +145,17 @@ Finally I found a Travis script in the scripts folder called "travis-run-tests.s
 So yes, the experience in using this tool was terrible because of a lack of in-project documentation.
 The JaCoCo project's documentation however was fine.
 
+Nikhil: Upvote to what Johan said about the poor documentation of Jacoco on the bt README. I had a bit more trouble
+trying to get it to work on my Ubuntu machine. Neither the bash script nor the mvn install command inside the script
+worked for me initially. Errors pointing to other maven plugins would prevent any reports from being created.
+After hours and hours of troubleshooting I finally found out that simply updating the Jacoco plugin version from 
+0.7.8 to 0.8.2 would work, and it did.
+
 
 //Document your experience in using a "new"/different coverage tool.
 
 //How well was the tool documented? Was it possible/easy/difficult to integrate it with your build environment?
+
 
 ### DYI
 
@@ -106,11 +183,27 @@ However it's still a tool of limited usage because of the large amount of manual
 
 ### Evaluation
 
-Report of old coverage: [link]
+Report of old coverage:
+
+The old coverage by JaCoCo can be found in the oldcoverage/ directory.
+ConnectionSource#getConnectionAsync:
+MetadataService#buildTorrent:
+
+Jagan:
+I used IntelliJ's inbuilt code coverage tool, as it seemed to avoid a lot of hassles and was documented pretty clearly. The results of my coverage(both before and afer) are available as images under the oldcoverage/methodName directory
 
 Report of new coverage: [link]
+The new coverage by JaCoCo can be found in the respective target/ directories.
+ConnectionSource#getConnectionAsync:
+MetadataService#buildTorrent: Not applicable
 
 Test cases added:
+ConnectionSource#getConnectionAsync: Two: Check for unreachable peers and already existing connections
+MetadataService#buildTorrent: None
+
+MessagingAgentCompiler#compileType: 2 test case for non-public function and a function with both annotations assigned
+RarestFirstSelectionStrategy#getNextPieces: One test case to handle the randomized selection branch.
+
 
 git diff ...
 
@@ -172,6 +265,21 @@ All the null-checking can be replace with the new Java Optional class. The issue
 
 L244-269: Gather out the tracker URLs. This can easily be refactored into a method.
 
+Assignments#update:
+
+Like with the assign function (see below), I would abstract out all mentions and checks of LOGGER.isTraceEnabled. There are only 2 in this function,
+but 1 of them is within a loop. Additionally, there are 2 separate if statements that check to see if a specific object is null. One checks to see if
+the object (queue) is null, and the other checks to see if it's not null. Creating this null check only once and when it is immediately initialized can 
+reduce the need to check it again later. There is also a check for the size of the object (queue) that is done twice. Abstracting that out as well 
+(assuming the object is not null) can prevent the function from needing to check it twice.
+
+Assignments#assign:
+
+The first thing I would do with this function, is abstract out all mentions and checks of LOGGER.isTraceEnabled. This check is made at least 6 times
+in the function, 4 of which are in a do-while loop. Removing that if statement alone and calling it once in a helper logging function can simplify the code.
+I would also create a separate function for the iteration of pieces (peers) as it is already nested in the else block of the endgame check. In fact, a return could be
+made after identifying a peer as endgame to avoid ever having to walk into the else branch.
+
 Carried out refactoring (optional)
 
 ## Effort spent
@@ -179,33 +287,49 @@ Carried out refactoring (optional)
 For each team member, how much time was spent in
 
 1. plenary discussions/meetings;
-Johan: 2 hours
-Nikhil: 2 hours
-Jagan: 2 hours
-Tom: 0 hours (was ill)
+- Johan: 2 hours
+- Nikhil: 2 hours
+- Jagan: 2 hours
+- Tom: 0 hours (was ill)
 
 2. discussions within parts of the group;
-Johan: 10 minutes or so
+- Johan: 10 minutes or so
+- Nikhil: ~20 minutes asking about Jacoco
 
 3. reading documentation;
-Johan: 1 hour
+- Johan: 1 hour
+- Nikhil: ~30 min on bt, 1 hour on Jacoco
 
 4. configuration;
+- Nikhil: 4 hours (Spent 2 days trying to configure Jacoco)
 
 5. analyzing code/output;
-Johan: 4 hours
+- Johan: 4 hours
+- Nikhil: 2 hours
+- Jagan: 6 hours
 
 6. writing documentation (writing report?));
-Johan: 5 hours
+- Johan: 5 hours
+- Nikhil: 2.5 hours
 
 7. writing code;
-Johan: 6 hour
+- Johan: 6 hours
+- Nikhil:
+- Jagan: 3 hours
 
 8. running code?
-Johan: Many hours?
+- Johan: Many hours?
+- Nikhil: Not sure what this refers to but see above for more accurate division
 
 ## Overall experience
 
 What are your main take-aways from this project? What did you learn?
+
+
+CCN seems to be a good metric to check for possible potentially buugy code. It's good practice to ensure functions with high CCNs are 
+  1. Refactored into possible chunks, if possible
+  2. Else, adequately unit tested to ensure future code doesn't break stuff
+
+Though code coverage is a reasonably good method, it's not 100% fool-proof and can still be worked around due to short-circuits in conditions(especially weak if the focus is to only write test cases for high CCN functions ).
 
 Is there something special you want to mention here?
