@@ -16,6 +16,7 @@
 
 package bt.torrent;
 
+import bt.torrent.CoverMe;
 import bt.torrent.selector.PackedIntComparator;
 
 import java.util.Arrays;
@@ -81,12 +82,15 @@ public class RarestFirstSelectionStrategy implements PieceSelectionStrategy {
 
     @Override
     public Integer[] getNextPieces(PieceStatistics pieceStats, int limit, Predicate<Integer> pieceIndexValidator) {
-
+        int codeCoverageBranch = 1;
+        CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
         PriorityQueue<Long> rarestPieces = new PriorityQueue<>(comparator);
         int piecesTotal = pieceStats.getPiecesTotal();
         for (int pieceIndex = 0; pieceIndex < piecesTotal; pieceIndex++) {
+            CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
             int count = pieceStats.getCount(pieceIndex);
             if (count > 0 && pieceIndexValidator.test(pieceIndex)) {
+                CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
                 long packed = (((long)pieceIndex) << 32) + count;
                 rarestPieces.add(packed);
             }
@@ -97,21 +101,26 @@ public class RarestFirstSelectionStrategy implements PieceSelectionStrategy {
         Integer[] collectedIndices = new Integer[k];
         Long rarestPiece;
         while ((rarestPiece = rarestPieces.poll()) != null && collected < k) {
+            CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
             collectedIndices[collected] = (int) (rarestPiece >> 32);
             collected++;
         }
 
         if (collected < k) {
+            CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
             collectedIndices = Arrays.copyOfRange(collectedIndices, 0, collected);
         }
 
         if (collectedIndices.length > 0 && randomized) {
+            CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
             Random random = new Random(System.currentTimeMillis());
             Set<Integer> selected = new HashSet<>((int)(collected / 0.75d + 1));
             Integer nextPiece;
             int actualLimit = Math.min(collected, limit);
             for (int i = 0; i < actualLimit; i++) {
+                CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
                 do {
+                    CoverMe.reg("RarestFirstSelectionStrategy",codeCoverageBranch++);
                     nextPiece = collectedIndices[random.nextInt(collectedIndices.length)];
                 } while (selected.contains(nextPiece));
                 selected.add(nextPiece);
