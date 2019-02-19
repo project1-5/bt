@@ -90,6 +90,16 @@ According to JaCoCo:
 According to manual instrumentation:
 
 
+### (2,3,5) MessagingAgentCompiler#compileType (Jagan Moorthy):
+The function is pretty long(60 lines). 
+The function goes through a given class' functions and check if they have either(and not both) of the two given annotations, and check if such annotated functions are public, and places them into corresponding collections passed as parameters. It returns the count of such functions.
+Not much documentation.
+
+### (2,3,5) RarestFirstSelectionStrategy#getNextPieces (Jagan Moorthy):
+50 line function, which can be broken down.
+The function gets statistics per torrent piece and a piece selection criteria as the input and returns a said number of pieces. In addition to the passed criteria, it selects the least frequent peices in a random way.
+No documentation available in the overridden function, but the base class has some info.
+
 ## Coverage
 
 ### Tools
@@ -133,6 +143,9 @@ The old coverage by JaCoCo can be found in the oldcoverage/ directory.
 ConnectionSource#getConnectionAsync:
 MetadataService#buildTorrent:
 
+Jagan:
+I used IntelliJ's inbuilt code coverage tool, as it seemed to avoid a lot of hassles and was documented pretty clearly. The results of my coverage(both before and afer) are available as images under the oldcoverage/methodName directory
+
 Report of new coverage: [link]
 The new coverage by JaCoCo can be found in the respective target/ directories.
 ConnectionSource#getConnectionAsync:
@@ -141,6 +154,10 @@ MetadataService#buildTorrent: Not applicable
 Test cases added:
 ConnectionSource#getConnectionAsync: Two: Check for unreachable peers and already existing connections
 MetadataService#buildTorrent: None
+
+MessagingAgentCompiler#compileType: 2 test case for non-public function and a function with both annotations assigned
+RarestFirstSelectionStrategy#getNextPieces: One test case to handle the randomized selection branch.
+
 
 git diff ...
 
@@ -224,12 +241,14 @@ Johan: 1 hour
 
 5. analyzing code/output;
 Johan: 4 hours
+Jagan: 6 hours
 
 6. writing documentation (writing report?));
 Johan: 5 hours
 
 7. writing code;
 Johan: 6 hour
+Jagan: 3 houra
 
 8. running code?
 Johan: Many hours?
@@ -237,5 +256,12 @@ Johan: Many hours?
 ## Overall experience
 
 What are your main take-aways from this project? What did you learn?
+
+
+CCN seems to be a good metric to check for possible potentially buugy code. It's good practice to ensure functions with high CCNs are 
+  1. Refactored into possible chunks, if possible
+  2. Else, adequately unit tested to ensure future code doesn't break stuff
+
+Though code coverage is a reasonably good method, it's not 100% fool-proof and can still be worked around due to short-circuits in conditions(especially weak if the focus is to only write test cases for high CCN functions ).
 
 Is there something special you want to mention here?
