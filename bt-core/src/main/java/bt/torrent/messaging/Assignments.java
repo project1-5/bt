@@ -86,6 +86,7 @@ public class Assignments {
     public Optional<Assignment> assign(Peer peer) {
         LinkedList<Integer> pieces = peers.get(peer);
         if (pieces == null || pieces.isEmpty()) {
+            CoverMe.reg("assign", 0);
             return Optional.empty();
         }
 
@@ -93,6 +94,7 @@ public class Assignments {
 
         StringBuilder buf = LOGGER.isTraceEnabled() ? new StringBuilder() : null;
         if (LOGGER.isTraceEnabled()) {
+            CoverMe.reg("assign", 1);
             buf.append("Trying to claim next assignment for peer ");
             buf.append(peer);
             buf.append(". Number of remaining pieces: ");
@@ -105,42 +107,51 @@ public class Assignments {
 
         Optional<Integer> selectedPiece;
         if (endgame) {
+            CoverMe.reg("assign", 2);
             // take random piece to minimize number of pieces
             // requested from different peers at the same time
             Integer pieceIndex = pieces.remove(random.nextInt(pieces.size()));
             selectedPiece = Optional.of(pieceIndex);
         } else {
-
+            CoverMe.reg("assign", 3);
             Integer piece;
             boolean assigned = true;
             Iterator<Integer> iter = pieces.iterator();
             do {
+                CoverMe.reg("assign", 4);
                 piece = iter.next();
                 if (bitfield.isComplete(piece)) {
+                    CoverMe.reg("assign", 5);
                     iter.remove();
                     if (LOGGER.isTraceEnabled()) {
+                        CoverMe.reg("assign", 6);
                         buf.append("Checking next piece in queue: {" + piece + "}; piece is completed. ");
                     }
                     continue;
                 }
                 assigned = assignedPieces.contains(piece);
                 if (assigned && LOGGER.isTraceEnabled()) {
+                    CoverMe.reg("assign", 7);
                     buf.append("Checking next piece in queue: {" + piece + "}; piece is assigned. ");
                 }
             } while (assigned && iter.hasNext());
 
             if (!assigned) {
+                CoverMe.reg("assign", 8);
                 iter.remove();
             }
             selectedPiece = assigned ? Optional.empty() : Optional.of(piece);
         }
 
         if (LOGGER.isTraceEnabled()) {
+            CoverMe.reg("assign", 9);
             if (selectedPiece.isPresent()) {
+                CoverMe.reg("assign", 10);
                 buf.append(" => Assigning piece #");
                 buf.append(selectedPiece.get());
                 buf.append(" to current peer");
             } else {
+                CoverMe.reg("assign", 11);
                 buf.append(" => No pieces to assign.");
             }
             LOGGER.trace(buf.toString());
@@ -174,38 +185,48 @@ public class Assignments {
     public Set<Peer> update(Set<Peer> ready, Set<Peer> choking) {
         Iterator<Integer> suggested = selector.getNextPieces(pieceStatistics).iterator();
         if (LOGGER.isTraceEnabled()) {
+            CoverMe.reg("update", 0);
             LOGGER.trace("Updating assignments. Piece selector has more pieces: {}, number of ready peers: {}, number of assigned peers: {}",
                     suggested.hasNext(), ready.size(), assignments.size());
         }
         final Set<Peer> readyPeers = new HashSet<>(ready);
         while (suggested.hasNext() && readyPeers.size() > 0) {
+            CoverMe.reg("update", 1);
             Integer piece = suggested.next();
 
             final Iterator<Peer> iter = readyPeers.iterator();
             while (iter.hasNext()) {
+                CoverMe.reg("update", 2);
                 Peer peer = iter.next();
                 Optional<Bitfield> peerBitfield = pieceStatistics.getPeerBitfield(peer);
                 if (!peerBitfield.isPresent()) {
+                    CoverMe.reg("update", 3);
                     iter.remove();
                     continue;
                 }
                 LinkedList<Integer> queue = peers.get(peer);
                 if (queue != null && queue.size() > MAX_ASSIGNED_PIECES_PER_PEER) {
+                    CoverMe.reg("update", 4);
                     iter.remove();
                     continue;
                 }
                 boolean hasPiece = peerBitfield.get().isVerified(piece);
                 if (hasPiece) {
+                    CoverMe.reg("update", 5);
                     if (queue == null) {
+                        CoverMe.reg("update", 6);
                         queue = new LinkedList<>();
                         peers.put(peer, queue);
                     }
                     if (!queue.contains(piece)) {
+                        CoverMe.reg("update", 7);
                         queue.add(piece);
                         if (queue.size() > MAX_ASSIGNED_PIECES_PER_PEER) {
+                            CoverMe.reg("update", 8);
                             iter.remove();
                         }
                         if (LOGGER.isTraceEnabled()) {
+                            CoverMe.reg("update", 9);
                             LOGGER.trace("Adding piece #{} to peer's queue: {}. Number of pieces in peer's queue: {}",
                                     piece, peer, queue.size());
                         }
@@ -216,18 +237,22 @@ public class Assignments {
 
         Iterator<Map.Entry<Peer, LinkedList<Integer>>> iter = peers.entrySet().iterator();
         while (iter.hasNext()) {
+            CoverMe.reg("update", 10);
             Map.Entry<Peer, LinkedList<Integer>> e = iter.next();
             Peer peer = e.getKey();
             LinkedList<Integer> pieces = e.getValue();
 
             if (!ready.contains(peer) || pieces.isEmpty()) {
+                CoverMe.reg("update", 11);
                 iter.remove();
             }
         }
 
         Set<Peer> result = new HashSet<>(peers.keySet());
         for (Peer peer : choking) {
+            CoverMe.reg("update", 12);
             if (hasInterestingPieces(peer)) {
+                CoverMe.reg("update", 13);
                 result.add(peer);
             }
         }

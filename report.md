@@ -25,18 +25,38 @@ in the pom.xml file. Very frustrating experience trying to get Jacoco to work.
 
 1. What are your results for the ten most complex functions? (If ranking
 is not easily possible: ten complex functions)?
-   * Did all tools/methods get the same result?
-   * Are the results clear?
+
+```
+ !!!! Warnings (cyclomatic_complexity > 15 or length > 1000 or parameter_count > 100) !!!!
+================================================
+  NLOC    CCN   token  PARAM  length  location
+------------------------------------------------
+     181     46   1325      0     285 PullMetaDataConnection::processInput@329-613@./bt-dht/the8472/mldht/src/the8472/bt/PullMetaDataConnection.java
+     113     33    787      1     132 PrettyPrinter::prettyPrintInternal@83-214@./bt-dht/the8472/mldht/src/the8472/bencode/PrettyPrinter.java
+     113     32   1214      3     148 MessageDecoder::parseResponse@162-309@./bt-dht/the8472/mldht/src/lbms/plugins/mldht/kad/messages/MessageDecoder.java
+     107     27   1187      3     137 MessageDecoder::parseRequest@325-461@./bt-dht/the8472/mldht/src/lbms/plugins/mldht/kad/messages/MessageDecoder.java
+     103     21   1079      2     150 RPCServer::handlePacket@375-524@./bt-dht/the8472/mldht/src/lbms/plugins/mldht/kad/RPCServer.java
+      76     21    596      0     106 TorrentFetcher::FetchTask::connections@501-606@./bt-dht/the8472/mldht/src/the8472/mldht/TorrentFetcher.java
+     136     21   1122      4     196 MSEHandshakeProcessor::negotiateIncoming@291-486@./bt-core/src/main/java/bt/net/crypto/MSEHandshakeProcessor.java
+      75     20    478      2      81 ConnectionSource::getConnectionAsync@85-165@./bt-core/src/main/java/bt/net/ConnectionSource.java
+     120     19   1066      1     158 MetadataService::buildTorrent@109-266@./bt-core/src/main/java/bt/metainfo/MetadataService.java
+     108     19    668      0     143 Server::accept@96-238@./bt-dht/the8472/mldht/src/the8472/mldht/cli/Server.java
+```
+
+We only used Lizard and the results are clear.
+
+
+
 2. Are the functions just complex, or also long?
 3. What is the purpose of the functions?
-4. Are exceptions taken into account in the given measurements?
 5. Is the documentation clear w.r.t. all the possible outcomes?
+Answered below.
+
+4. Are exceptions taken into account in the given measurements?
+No.
 
 
-### (2,3) ConnectionSource#getConnectionAsync:
-
-TODO: Do a manual count of the CCN.
-Purpose, CCN:
+### (2,3,5) ConnectionSource#getConnectionAsync (Johan):
 
 The CCN is partially inflated because of branches which are solely there for logging.
 The code is fairly long, clocking in at 75 lines for one method and the method is not documented. There are
@@ -48,15 +68,21 @@ This new connection is established and run asynchronously through the Completabl
 To create a new CompletableFuture a lambda is provided in the code. The branches in the lambda should
 technically be counted separately, however lizard does not do so.
 
-Code coverage:
+Code coverage before:
 
 According to JaCoCo:
 0%
 According to manual instrumentation:
 0%
 
-### (2,3) MetadataService#buildTorrent
-Purpose, CCN:
+Code coverage after:
+
+According to JaCoCo:
+16% branches, 33% code
+According to manual instrumentation:
+3/10 branches taken
+
+### (2,3,5) MetadataService#buildTorrent (Johan):
 
 Many branches here are because of null checks. They are also lonely if-branches without an else-part.
 The code creates a torrent from the metadata from some parser (the parser holds the content of some torrent file).
@@ -98,6 +124,16 @@ M = 16 - 2 + 2 = 16
 
 
 
+### (2,3,5) MessagingAgentCompiler#compileType (Jagan Moorthy):
+The function is pretty long(60 lines). 
+The function goes through a given class' functions and check if they have either(and not both) of the two given annotations, and check if such annotated functions are public, and places them into corresponding collections passed as parameters. It returns the count of such functions.
+Not much documentation.
+
+### (2,3,5) RarestFirstSelectionStrategy#getNextPieces (Jagan Moorthy):
+50 line function, which can be broken down.
+The function gets statistics per torrent piece and a piece selection criteria as the input and returns a said number of pieces. In addition to the passed criteria, it selects the least frequent peices in a random way.
+No documentation available in the overridden function, but the base class has some info.
+
 ## Coverage
 
 ### Tools
@@ -119,6 +155,7 @@ After hours and hours of troubleshooting I finally found out that simply updatin
 //Document your experience in using a "new"/different coverage tool.
 
 //How well was the tool documented? Was it possible/easy/difficult to integrate it with your build environment?
+
 
 ### DYI
 
@@ -146,11 +183,27 @@ However it's still a tool of limited usage because of the large amount of manual
 
 ### Evaluation
 
-Report of old coverage: [link]
+Report of old coverage:
+
+The old coverage by JaCoCo can be found in the oldcoverage/ directory.
+ConnectionSource#getConnectionAsync:
+MetadataService#buildTorrent:
+
+Jagan:
+I used IntelliJ's inbuilt code coverage tool, as it seemed to avoid a lot of hassles and was documented pretty clearly. The results of my coverage(both before and afer) are available as images under the oldcoverage/methodName directory
 
 Report of new coverage: [link]
+The new coverage by JaCoCo can be found in the respective target/ directories.
+ConnectionSource#getConnectionAsync:
+MetadataService#buildTorrent: Not applicable
 
 Test cases added:
+ConnectionSource#getConnectionAsync: Two: Check for unreachable peers and already existing connections
+MetadataService#buildTorrent: None
+
+MessagingAgentCompiler#compileType: 2 test case for non-public function and a function with both annotations assigned
+RarestFirstSelectionStrategy#getNextPieces: One test case to handle the randomized selection branch.
+
 
 git diff ...
 
@@ -252,7 +305,8 @@ For each team member, how much time was spent in
 
 5. analyzing code/output;
 - Johan: 4 hours
-- Nikhil: 1 hour
+- Nikhil: 2 hours
+- Jagan: 6 hours
 
 6. writing documentation (writing report?));
 - Johan: 5 hours
@@ -261,6 +315,7 @@ For each team member, how much time was spent in
 7. writing code;
 - Johan: 6 hours
 - Nikhil:
+- Jagan: 3 hours
 
 8. running code?
 - Johan: Many hours?
@@ -269,5 +324,12 @@ For each team member, how much time was spent in
 ## Overall experience
 
 What are your main take-aways from this project? What did you learn?
+
+
+CCN seems to be a good metric to check for possible potentially buugy code. It's good practice to ensure functions with high CCNs are 
+  1. Refactored into possible chunks, if possible
+  2. Else, adequately unit tested to ensure future code doesn't break stuff
+
+Though code coverage is a reasonably good method, it's not 100% fool-proof and can still be worked around due to short-circuits in conditions(especially weak if the focus is to only write test cases for high CCN functions ).
 
 Is there something special you want to mention here?
