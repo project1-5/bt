@@ -16,6 +16,11 @@ bt is a BitTorrent library for the Java programming language. It supports custom
 
 Building was easy and described in the README. Built fine on my Linux system using a modern JDK (OpenJDK 11).
 
+Nikhil: Building was very easy, trying to run the Jacoco coverage suite was another question. Ended up spending multiple hours trying
+to troubleshoot why Jacoco would not create coverage reports. Running the test cases with the coverage configuration pulled up
+many errors for me, pointing to other maven plugins (maven-surefire-plugin). Solution was finally found by updating Jacoco version
+in the pom.xml file. Very frustrating experience trying to get Jacoco to work.
+
 ## Complexity
 
 1. What are your results for the ten most complex functions? (If ranking
@@ -63,6 +68,35 @@ According to JaCoCo:
 0%
 According to manual instrumentation:
 
+### (4) Assignments#update
+Purpose:
+
+This function returns a set of other peers that contain pieces that are interesting to the current peer and that can be
+given assignments. The CCN is high for a few reasons. There are multiple null checks, and checks to see if certain 
+logging traces are enabled or not. Given a certain peer (which itself requires some branches to identify if it's a valid peer),
+checking to see if it has important/interesting pieces results in multiple loop iterations and if statements.
+
+This is a fairly long function, at 63 lines of code. Again, no documentation is given so logging wasn't super helpful by itself.
+
+Manual cyclomatic complexity (M = pi - s + 2):
+M = 17 - 1 + 2 = 18
+
+
+### (8) Assignments#assign
+Purpose:
+
+This function selects a piece the current peer has and assigns it to another peer that has been given to the function.
+There are multiple reasons why many branches exist in this funciton. A few have to do with the nature of the assigning
+which requires constant checking of the bit iterator to see if more pieces need to be assigned. Another has to do with
+seeing if certain log traces are enabled our not. No exceptions are made here, so they are not taken into account in the CCN.
+
+This is a fairly long function, at 65 lines of code. Again, no documentation is given so logging wasn't super helpful by itself.
+
+Manual cyclomatic complexity (M = pi - s + 2):
+M = 16 - 2 + 2 = 16
+
+
+
 
 ## Coverage
 
@@ -74,6 +108,12 @@ instructions on how to use the tool through Google. I did this for about 2 hours
 Finally I found a Travis script in the scripts folder called "travis-run-tests.sh" which ran the tests with code coverage on.
 So yes, the experience in using this tool was terrible because of a lack of in-project documentation.
 The JaCoCo project's documentation however was fine.
+
+Nikhil: Upvote to what Johan said about the poor documentation of Jacoco on the bt README. I had a bit more trouble
+trying to get it to work on my Ubuntu machine. Neither the bash script nor the mvn install command inside the script
+worked for me initially. Errors pointing to other maven plugins would prevent any reports from being created.
+After hours and hours of troubleshooting I finally found out that simply updating the Jacoco plugin version from 
+0.7.8 to 0.8.2 would work, and it did.
 
 
 //Document your experience in using a "new"/different coverage tool.
@@ -172,6 +212,21 @@ All the null-checking can be replace with the new Java Optional class. The issue
 
 L244-269: Gather out the tracker URLs. This can easily be refactored into a method.
 
+Assignments#update:
+
+Like with the assign function (see below), I would abstract out all mentions and checks of LOGGER.isTraceEnabled. There are only 2 in this function,
+but 1 of them is within a loop. Additionally, there are 2 separate if statements that check to see if a specific object is null. One checks to see if
+the object (queue) is null, and the other checks to see if it's not null. Creating this null check only once and when it is immediately initialized can 
+reduce the need to check it again later. There is also a check for the size of the object (queue) that is done twice. Abstracting that out as well 
+(assuming the object is not null) can prevent the function from needing to check it twice.
+
+Assignments#assign:
+
+The first thing I would do with this function, is abstract out all mentions and checks of LOGGER.isTraceEnabled. This check is made at least 6 times
+in the function, 4 of which are in a do-while loop. Removing that if statement alone and calling it once in a helper logging function can simplify the code.
+I would also create a separate function for the iteration of pieces (peers) as it is already nested in the else block of the endgame check. In fact, a return could be
+made after identifying a peer as endgame to avoid ever having to walk into the else branch.
+
 Carried out refactoring (optional)
 
 ## Effort spent
@@ -179,30 +234,37 @@ Carried out refactoring (optional)
 For each team member, how much time was spent in
 
 1. plenary discussions/meetings;
-Johan: 2 hours
-Nikhil: 2 hours
-Jagan: 2 hours
-Tom: 0 hours (was ill)
+- Johan: 2 hours
+- Nikhil: 2 hours
+- Jagan: 2 hours
+- Tom: 0 hours (was ill)
 
 2. discussions within parts of the group;
-Johan: 10 minutes or so
+- Johan: 10 minutes or so
+- Nikhil: ~20 minutes asking about Jacoco
 
 3. reading documentation;
-Johan: 1 hour
+- Johan: 1 hour
+- Nikhil: ~30 min on bt, 1 hour on Jacoco
 
 4. configuration;
+- Nikhil: 4 hours (Spent 2 days trying to configure Jacoco)
 
 5. analyzing code/output;
-Johan: 4 hours
+- Johan: 4 hours
+- Nikhil: 1 hour
 
 6. writing documentation (writing report?));
-Johan: 5 hours
+- Johan: 5 hours
+- Nikhil: 2.5 hours
 
 7. writing code;
-Johan: 6 hour
+- Johan: 6 hours
+- Nikhil:
 
 8. running code?
-Johan: Many hours?
+- Johan: Many hours?
+- Nikhil: Not sure what this refers to but see above for more accurate division
 
 ## Overall experience
 
