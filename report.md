@@ -20,18 +20,38 @@ Building was easy and described in the README. Built fine on my Linux system usi
 
 1. What are your results for the ten most complex functions? (If ranking
 is not easily possible: ten complex functions)?
-   * Did all tools/methods get the same result?
-   * Are the results clear?
+
+```
+ !!!! Warnings (cyclomatic_complexity > 15 or length > 1000 or parameter_count > 100) !!!!
+================================================
+  NLOC    CCN   token  PARAM  length  location
+------------------------------------------------
+     181     46   1325      0     285 PullMetaDataConnection::processInput@329-613@./bt-dht/the8472/mldht/src/the8472/bt/PullMetaDataConnection.java
+     113     33    787      1     132 PrettyPrinter::prettyPrintInternal@83-214@./bt-dht/the8472/mldht/src/the8472/bencode/PrettyPrinter.java
+     113     32   1214      3     148 MessageDecoder::parseResponse@162-309@./bt-dht/the8472/mldht/src/lbms/plugins/mldht/kad/messages/MessageDecoder.java
+     107     27   1187      3     137 MessageDecoder::parseRequest@325-461@./bt-dht/the8472/mldht/src/lbms/plugins/mldht/kad/messages/MessageDecoder.java
+     103     21   1079      2     150 RPCServer::handlePacket@375-524@./bt-dht/the8472/mldht/src/lbms/plugins/mldht/kad/RPCServer.java
+      76     21    596      0     106 TorrentFetcher::FetchTask::connections@501-606@./bt-dht/the8472/mldht/src/the8472/mldht/TorrentFetcher.java
+     136     21   1122      4     196 MSEHandshakeProcessor::negotiateIncoming@291-486@./bt-core/src/main/java/bt/net/crypto/MSEHandshakeProcessor.java
+      75     20    478      2      81 ConnectionSource::getConnectionAsync@85-165@./bt-core/src/main/java/bt/net/ConnectionSource.java
+     120     19   1066      1     158 MetadataService::buildTorrent@109-266@./bt-core/src/main/java/bt/metainfo/MetadataService.java
+     108     19    668      0     143 Server::accept@96-238@./bt-dht/the8472/mldht/src/the8472/mldht/cli/Server.java
+```
+
+We only used Lizard and the results are clear.
+
+
+
 2. Are the functions just complex, or also long?
 3. What is the purpose of the functions?
-4. Are exceptions taken into account in the given measurements?
 5. Is the documentation clear w.r.t. all the possible outcomes?
+Answered below.
+
+4. Are exceptions taken into account in the given measurements?
+No.
 
 
-### (2,3) ConnectionSource#getConnectionAsync:
-
-TODO: Do a manual count of the CCN.
-Purpose, CCN:
+### (2,3,5) ConnectionSource#getConnectionAsync (Johan):
 
 The CCN is partially inflated because of branches which are solely there for logging.
 The code is fairly long, clocking in at 75 lines for one method and the method is not documented. There are
@@ -43,15 +63,21 @@ This new connection is established and run asynchronously through the Completabl
 To create a new CompletableFuture a lambda is provided in the code. The branches in the lambda should
 technically be counted separately, however lizard does not do so.
 
-Code coverage:
+Code coverage before:
 
 According to JaCoCo:
 0%
 According to manual instrumentation:
 0%
 
-### (2,3) MetadataService#buildTorrent
-Purpose, CCN:
+Code coverage after:
+
+According to JaCoCo:
+16% branches, 33% code
+According to manual instrumentation:
+3/10 branches taken
+
+### (2,3,5) MetadataService#buildTorrent (Johan):
 
 Many branches here are because of null checks. They are also lonely if-branches without an else-part.
 The code creates a torrent from the metadata from some parser (the parser holds the content of some torrent file).
@@ -74,11 +100,6 @@ instructions on how to use the tool through Google. I did this for about 2 hours
 Finally I found a Travis script in the scripts folder called "travis-run-tests.sh" which ran the tests with code coverage on.
 So yes, the experience in using this tool was terrible because of a lack of in-project documentation.
 The JaCoCo project's documentation however was fine.
-
-
-//Document your experience in using a "new"/different coverage tool.
-
-//How well was the tool documented? Was it possible/easy/difficult to integrate it with your build environment?
 
 ### DYI
 
@@ -106,11 +127,20 @@ However it's still a tool of limited usage because of the large amount of manual
 
 ### Evaluation
 
-Report of old coverage: [link]
+Report of old coverage:
+
+The old coverage by JaCoCo can be found in the oldcoverage/ directory.
+ConnectionSource#getConnectionAsync:
+MetadataService#buildTorrent:
 
 Report of new coverage: [link]
+The new coverage by JaCoCo can be found in the respective target/ directories.
+ConnectionSource#getConnectionAsync:
+MetadataService#buildTorrent: Not applicable
 
 Test cases added:
+ConnectionSource#getConnectionAsync: Two: Check for unreachable peers and already existing connections
+MetadataService#buildTorrent: None
 
 git diff ...
 
