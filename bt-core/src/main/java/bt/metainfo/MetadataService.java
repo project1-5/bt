@@ -191,6 +191,34 @@ public class MetadataService implements IMetadataService {
             }
 	}
 
+    private AnnounceKey ensureAnnouncers(boolean isPrivate, Map<String, BEObject<?>> root) {
+	AnnounceKey announceKey = null;
+	if (!isPrivate && root.containsKey(ANNOUNCE_LIST_KEY)) {
+	    List<List<String>> trackerUrls;
+
+	    BEList announceList = (BEList) root.get(ANNOUNCE_LIST_KEY);
+	    List<BEList> tierList = (List<BEList>) announceList.getValue();
+	    trackerUrls = new ArrayList<>(tierList.size() + 1);
+	    for (BEList tierElement : tierList) {
+		List<String> tierTackerUrls;
+
+		List<BEString> trackerUrlList = (List<BEString>) tierElement.getValue();
+		tierTackerUrls = new ArrayList<>(trackerUrlList.size() + 1);
+		for (BEString trackerUrlElement : trackerUrlList) {
+		    tierTackerUrls.add(trackerUrlElement.getValue(defaultCharset));
+		}
+		trackerUrls.add(tierTackerUrls);
+	    }
+
+	    announceKey = new AnnounceKey(trackerUrls);
+
+	} else if (root.containsKey(ANNOUNCE_KEY)) {
+	    byte[] trackerUrl = (byte[]) root.get(ANNOUNCE_KEY).getValue();
+	    announceKey = new AnnounceKey(new String(trackerUrl, defaultCharset));
+	}
+	return announceKey;
+    }
+
     @SuppressWarnings({"rawtypes", "unchecked"})
     private Torrent buildTorrent(BEParser parser) {
 
@@ -249,7 +277,6 @@ public class MetadataService implements IMetadataService {
 			isPrivate = true;
 		    }
 		}
-
 		if (root.get(CREATION_DATE_KEY) != null) {
 		    CoverMe.reg("buildTorrent", 12);
 		    BigInteger epochMilli = (BigInteger) root.get(CREATION_DATE_KEY).getValue();
@@ -262,39 +289,12 @@ public class MetadataService implements IMetadataService {
 		    byte[] createdBy = (byte[]) root.get(CREATED_BY_KEY).getValue();
 		    torrent.setCreatedBy(new String(createdBy, defaultCharset));
 		}
-
-		AnnounceKey announceKey = null;
-		// TODO: support for private torrents with multiple trackers
-		if (!isPrivate && root.containsKey(ANNOUNCE_LIST_KEY)) {
-		    CoverMe.reg("buildTorrent", 14);
-		    List<List<String>> trackerUrls;
-
-		    BEList announceList = (BEList) root.get(ANNOUNCE_LIST_KEY);
-		    List<BEList> tierList = (List<BEList>) announceList.getValue();
-		    trackerUrls = new ArrayList<>(tierList.size() + 1);
-		    for (BEList tierElement : tierList) {
-			List<String> tierTackerUrls;
-
-			List<BEString> trackerUrlList = (List<BEString>) tierElement.getValue();
-			tierTackerUrls = new ArrayList<>(trackerUrlList.size() + 1);
-			for (BEString trackerUrlElement : trackerUrlList) {
-			    tierTackerUrls.add(trackerUrlElement.getValue(defaultCharset));
-			}
-			trackerUrls.add(tierTackerUrls);
-		    }
-
-		    announceKey = new AnnounceKey(trackerUrls);
-
-		} else if (root.containsKey(ANNOUNCE_KEY)) {
-		    CoverMe.reg("buildTorrent", 15);
-		    byte[] trackerUrl = (byte[]) root.get(ANNOUNCE_KEY).getValue();
-		    announceKey = new AnnounceKey(new String(trackerUrl, defaultCharset));
-		}
-
+		
+		AnnounceKey announceKey = ensureAnnouncers(isPrivate, root);
 		if (announceKey != null) {
-		    CoverMe.reg("buildTorrent", 16);
 		    torrent.setAnnounceKey(announceKey);
 		}
+
 
 	    } catch (Exception e) {
 		CoverMe.reg("buildTorrent", 17);
