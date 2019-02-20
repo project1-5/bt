@@ -348,7 +348,7 @@ For each team member, how much time was spent in
 
 
 7. writing code;
-- Johan: 6 hours
+- Johan: 8 hours
 - Nikhil:
 - Jagan: 3 hours
 
@@ -367,9 +367,11 @@ New CCN: 11
 Diff: 57% of original
 
 ConnectionSource#getConnectionAsync
-Old CCN:
-New CCN:
-Diff:
+Old CCN: 20
+New CCN: 14
+Diff: 70% of original
+
+Diff together: 64% of original (36% reduction)
 
 Unit tests:
 

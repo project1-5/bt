@@ -107,12 +107,7 @@ public class ConnectionSource implements IConnectionSource {
 	return connection;
     }
 
-    @Override
-    public CompletableFuture<ConnectionResult> getConnectionAsync(Peer peer, TorrentId torrentId) {
-        ConnectionKey key = new ConnectionKey(peer, torrentId);
-        CompletableFuture<ConnectionResult> connection = hasConnection(peer, torrentId);
-	if(connection != null) return connection;
-
+    private CompletableFuture<ConnectionResult> initCheck(Peer peer, TorrentId torrentId) {
 	if(isPeerBanned(peer)) {
 	    if (LOGGER.isDebugEnabled()) {
 		LOGGER.debug("Will not attempt to establish connection to peer: {}. " +
@@ -130,6 +125,16 @@ public class ConnectionSource implements IConnectionSource {
             }
             return CompletableFuture.completedFuture(ConnectionResult.failure("Connections limit exceeded"));
         }
+	return null;
+    }
+
+    @Override
+    public CompletableFuture<ConnectionResult> getConnectionAsync(Peer peer, TorrentId torrentId) {
+        ConnectionKey key = new ConnectionKey(peer, torrentId);
+        CompletableFuture<ConnectionResult> connection = hasConnection(peer, torrentId);
+	if(connection != null) return connection;
+	CompletableFuture<ConnectionResult> cn = initCheck(peer, torrentId);
+	if(cn != null) return cn;
 
         synchronized (pendingConnections) {
             connection = getExistingOrPendingConnection(key);
