@@ -86,9 +86,9 @@ There is no real documentation to establish the entirety of possible outcomes an
 Code coverage:
 
 According to JaCoCo:
-0%
+86% branches 85% code
 According to manual instrumentation:
-
+13/17 branches taken
 
 ## Coverage
 
@@ -226,7 +226,7 @@ Johan: 1 hour
 Johan: 4 hours
 
 6. writing documentation (writing report?));
-Johan: 5 hours
+Johan: 6 hours
 
 7. writing code;
 Johan: 6 hour
