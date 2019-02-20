@@ -44,6 +44,23 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+class Triple<T, U, V> {
+
+    private final T first;
+    private final U second;
+    private final V third;
+
+    public Triple(T first, U second, V third) {
+        this.first = first;
+        this.second = second;
+        this.third = third;
+    }
+
+    public T getFirst() { return first; }
+    public U getSecond() { return second; }
+    public V getThird() { return third; }
+}
+
 /**
  *<p><b>Note that this class implements a service.
  * Hence, is not a part of the public API and is a subject to change.</b></p>
@@ -105,6 +122,42 @@ public class MetadataService implements IMetadataService {
         }
     }
 
+    private Triple<TorrentSource,BEMap, Map<String, BEObject<?>>> extractSource(BEMap metadata) {
+        BEMap infoDictionary;
+        Map<String, BEObject<?>> root = metadata.getValue();
+	TorrentSource source;
+        if (root.containsKey(INFOMAP_KEY)) {
+            // standard BEP-3 format
+            infoDictionary = (BEMap) root.get(INFOMAP_KEY);
+            source = new TorrentSource() {
+		    @Override
+		    public Optional<byte[]> getMetadata() {
+			return Optional.of(metadata.getContent());
+		    }
+
+		    @Override
+		    public byte[] getExchangedMetadata() {
+			return infoDictionary.getContent();
+		    }
+		};
+        } else {
+            // BEP-9 exchanged metadata (just the info dictionary)
+            infoDictionary = metadata;
+            source = new TorrentSource() {
+		    @Override
+		    public Optional<byte[]> getMetadata() {
+			return Optional.empty();
+		    }
+
+		    @Override
+		    public byte[] getExchangedMetadata() {
+			return infoDictionary.getContent();
+		    }
+		};
+        }
+	return new Triple<TorrentSource,BEMap, Map<String, BEObject<?>>>(source, infoDictionary, root);
+    }
+
     @SuppressWarnings({"rawtypes", "unchecked"})
     private Torrent buildTorrent(BEParser parser) {
 
@@ -128,41 +181,10 @@ public class MetadataService implements IMetadataService {
             }
         }
 
-        BEMap infoDictionary;
-        TorrentSource source;
-
-        Map<String, BEObject<?>> root = metadata.getValue();
-        if (root.containsKey(INFOMAP_KEY)) {
-	    CoverMe.reg("buildTorrent", 4);
-            // standard BEP-3 format
-            infoDictionary = (BEMap) root.get(INFOMAP_KEY);
-            source = new TorrentSource() {
-                @Override
-                public Optional<byte[]> getMetadata() {
-                    return Optional.of(metadata.getContent());
-                }
-
-                @Override
-                public byte[] getExchangedMetadata() {
-                    return infoDictionary.getContent();
-                }
-            };
-        } else {
-	    CoverMe.reg("buildTorrent", 5);
-            // BEP-9 exchanged metadata (just the info dictionary)
-            infoDictionary = metadata;
-            source = new TorrentSource() {
-                @Override
-                public Optional<byte[]> getMetadata() {
-                    return Optional.empty();
-                }
-
-                @Override
-                public byte[] getExchangedMetadata() {
-                    return infoDictionary.getContent();
-                }
-            };
-        }
+        Triple<TorrentSource,BEMap, Map<String, BEObject<?>>> extractedSource = extractSource(metadata);
+	final TorrentSource source = extractedSource.getFirst();
+	final BEMap infoDictionary = extractedSource.getSecond();
+	final Map<String, BEObject<?>> root = extractedSource.getThird();
 
         DefaultTorrent torrent = new DefaultTorrent(source);
 
