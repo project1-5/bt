@@ -356,6 +356,26 @@ For each team member, how much time was spent in
 - Johan: Many hours?
 - Nikhil: Not sure what this refers to but see above for more accurate division
 
+
+### P+ Johan Sjölén
+
+Refactorings:
+
+MetadataService#buildTorrent
+Old CCN: 19
+New CCN: 11
+Diff: 57% of original
+
+ConnectionSource#getConnectionAsync
+Old CCN:
+New CCN:
+Diff:
+
+Unit tests:
+
+4 tests in ConnectionSource#getConnectionAsync (MetadataService#buildTorrent had very high coverage)
+
+
 ## Overall experience
 
 What are your main take-aways from this project? What did you learn?
