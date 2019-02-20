@@ -81,6 +81,22 @@ public class ConnectionSource implements IConnectionSource {
         }
     }
 
+    private boolean isPeerBanned(Peer peer) {
+        Long bannedAt = unreachablePeers.get(peer);
+        if (bannedAt != null) {
+            if (System.currentTimeMillis() - bannedAt >= config.getUnreachablePeerBanDuration().toMillis()) {
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Removing temporary ban for unreachable peer: {}", peer);
+                }
+                unreachablePeers.remove(peer);
+		return false;
+            } else {
+		return true;
+            }
+        }
+	return false;
+    }
+
     @Override
     public CompletableFuture<ConnectionResult> getConnectionAsync(Peer peer, TorrentId torrentId) {
         ConnectionKey key = new ConnectionKey(peer, torrentId);
@@ -95,26 +111,13 @@ public class ConnectionSource implements IConnectionSource {
             return connection;
         }
 
-        Long bannedAt = unreachablePeers.get(peer);
-        if (bannedAt != null) {
-	    CoverMe.reg("getConnectionAsync", 2);
-            if (System.currentTimeMillis() - bannedAt >= config.getUnreachablePeerBanDuration().toMillis()) {
-		CoverMe.reg("getConnectionAsync", 3);
-                if (LOGGER.isDebugEnabled()) {
-		    CoverMe.reg("getConnectionAsync", 4);
-                    LOGGER.debug("Removing temporary ban for unreachable peer: {}", peer);
-                }
-                unreachablePeers.remove(peer);
-            } else {
-		CoverMe.reg("getConnectionAsync", 5);
-                if (LOGGER.isDebugEnabled()) {
-		    CoverMe.reg("getConnectionAsync", 6);
-                    LOGGER.debug("Will not attempt to establish connection to peer: {}. " +
-                            "Reason: peer is unreachable. Torrent: {}", peer, torrentId);
-                }
-                return CompletableFuture.completedFuture(ConnectionResult.failure("Peer is unreachable"));
-            }
-        }
+	if(isPeerBanned(peer)) {
+	    if (LOGGER.isDebugEnabled()) {
+		LOGGER.debug("Will not attempt to establish connection to peer: {}. " +
+			     "Reason: peer is unreachable. Torrent: {}", peer, torrentId);
+	    }
+	    return CompletableFuture.completedFuture(ConnectionResult.failure("Peer is unreachable"));
+	}
 
         if (connectionPool.size() >= config.getMaxPeerConnections()) {
 	    CoverMe.reg("getConnectionAsync", 7);
