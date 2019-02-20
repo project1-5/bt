@@ -96,20 +96,22 @@ public class ConnectionSource implements IConnectionSource {
         }
 	return false;
     }
+    private CompletableFuture<ConnectionResult> hasConnection(Peer peer, TorrentId torrentId) {
+        ConnectionKey key = new ConnectionKey(peer, torrentId);
+        CompletableFuture<ConnectionResult> connection = getExistingOrPendingConnection(key);
+        if (connection != null) {
+            if (connection.isDone() && LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Returning existing connection for peer: {}. Torrent: {}", peer, torrentId);
+            }
+        }
+	return connection;
+    }
 
     @Override
     public CompletableFuture<ConnectionResult> getConnectionAsync(Peer peer, TorrentId torrentId) {
         ConnectionKey key = new ConnectionKey(peer, torrentId);
-
-        CompletableFuture<ConnectionResult> connection = getExistingOrPendingConnection(key);
-        if (connection != null) {
-	    CoverMe.reg("getConnectionAsync", 0);
-            if (connection.isDone() && LOGGER.isDebugEnabled()) {
-		CoverMe.reg("getConnectionAsync", 1);
-                LOGGER.debug("Returning existing connection for peer: {}. Torrent: {}", peer, torrentId);
-            }
-            return connection;
-        }
+        CompletableFuture<ConnectionResult> connection = hasConnection(peer, torrentId);
+	if(connection != null) return connection;
 
 	if(isPeerBanned(peer)) {
 	    if (LOGGER.isDebugEnabled()) {
@@ -124,7 +126,7 @@ public class ConnectionSource implements IConnectionSource {
             if (LOGGER.isDebugEnabled()) {
 		CoverMe.reg("getConnectionAsync", 8);
                 LOGGER.debug("Will not attempt to establish connection to peer: {}. " +
-                        "Reason: connections limit exceeded. Torrent: {}", peer, torrentId);
+			     "Reason: connections limit exceeded. Torrent: {}", peer, torrentId);
             }
             return CompletableFuture.completedFuture(ConnectionResult.failure("Connections limit exceeded"));
         }
@@ -139,48 +141,50 @@ public class ConnectionSource implements IConnectionSource {
                 }
                 return connection;
             }
+	    final Peer peer2 = peer;
+	    final TorrentId torrentId2 = torrentId;
+            CompletableFuture<Object> newConnection = CompletableFuture.supplyAsync(() -> {
+		    try {
+			CompletableFuture<ConnectionResult> connection2 = hasConnection(peer2, torrentId2);
+			if(connection2 != null) return connection2;
 
-            connection = CompletableFuture.supplyAsync(() -> {
-                try {
-		    CoverMe.reg("getConnectionAsyncLambda", 1);
-                    ConnectionResult connectionResult =
-                            connectionFactory.createOutgoingConnection(peer, torrentId);
-                    if (connectionResult.isSuccess()) {
-			CoverMe.reg("getConnectionAsyncLambda", 2);
-                        PeerConnection established = connectionResult.getConnection();
-                        PeerConnection added = connectionPool.addConnectionIfAbsent(established);
-                        if (added != established) {
-			    CoverMe.reg("getConnectionAsyncLambda", 3);
-                            established.closeQuietly();
-                        }
-                        return ConnectionResult.success(added);
-                    } else {
-			CoverMe.reg("getConnectionAsyncLambda", 4);
-                        return connectionResult;
-                    }
-                } finally {
-		    CoverMe.reg("getConnectionAsyncLambda", 5);
-                    synchronized (pendingConnections) {
-                        pendingConnections.remove(key);
-                    }
-                }
-            }, connectionExecutor).whenComplete((acquiredConnection, throwable) -> {
-                if (acquiredConnection == null || throwable != null) {
-		    CoverMe.reg("getConnectionAsyncLambda", 6);
-                    if (LOGGER.isDebugEnabled()) {
-			CoverMe.reg("getConnectionAsyncLambda", 7);
-                        LOGGER.debug("Peer is unreachable: {}. Will prevent further attempts to establish connection.", peer);
-                    }
-                    unreachablePeers.putIfAbsent(peer, System.currentTimeMillis());
-                }
-                if (throwable != null) {
-		    CoverMe.reg("getConnectionAsyncLambda", 8);
-                    if (LOGGER.isDebugEnabled()) {
-			CoverMe.reg("getConnectionAsyncLambda", 9);
-                        LOGGER.debug("Failed to establish outgoing connection to peer: " + peer, throwable);
-                    }
-                }
-            });
+			ConnectionResult connectionResult =
+			connectionFactory.createOutgoingConnection(peer2, torrentId2);
+			if (connectionResult.isSuccess()) {
+			    CoverMe.reg("getConnectionAsyncLambda", 2);
+			    PeerConnection established = connectionResult.getConnection();
+			    PeerConnection added = connectionPool.addConnectionIfAbsent(established);
+			    if (added != established) {
+				CoverMe.reg("getConnectionAsyncLambda", 3);
+				established.closeQuietly();
+			    }
+			    return (Object)ConnectionResult.success(added);
+			} else {
+			    CoverMe.reg("getConnectionAsyncLambda", 4);
+			    return (Object)connectionResult;
+			}
+		    } finally {
+			CoverMe.reg("getConnectionAsyncLambda", 5);
+			synchronized (pendingConnections) {
+			    pendingConnections.remove(key);
+			}
+		    }
+		}, connectionExecutor).whenComplete((acquiredConnection, throwable) -> {
+			if (acquiredConnection == null || throwable != null) {
+			    CoverMe.reg("getConnectionAsyncLambda", 6);
+			    if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("Peer is unreachable: {}. Will prevent further attempts to establish connection.", peer);
+			    }
+			    unreachablePeers.putIfAbsent(peer, System.currentTimeMillis());
+			}
+			if (throwable != null) {
+			    CoverMe.reg("getConnectionAsyncLambda", 8);
+			    if (LOGGER.isDebugEnabled()) {
+				CoverMe.reg("getConnectionAsyncLambda", 9);
+				LOGGER.debug("Failed to establish outgoing connection to peer: " + peer, throwable);
+			    }
+			}
+		    });
 
             pendingConnections.put(key, connection);
             return connection;
