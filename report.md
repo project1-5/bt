@@ -16,6 +16,11 @@ bt is a BitTorrent library for the Java programming language. It supports custom
 
 Building was easy and described in the README. Built fine on my Linux system using a modern JDK (OpenJDK 11).
 
+Nikhil: Building was very easy, trying to run the Jacoco coverage suite was another question. Ended up spending multiple hours trying
+to troubleshoot why Jacoco would not create coverage reports. Running the test cases with the coverage configuration pulled up
+many errors for me, pointing to other maven plugins (maven-surefire-plugin). Solution was finally found by updating Jacoco version
+in the pom.xml file. Very frustrating experience trying to get Jacoco to work.
+
 ## Complexity
 
 1. What are your results for the ten most complex functions? (If ranking
@@ -43,7 +48,9 @@ We only used Lizard and the results are clear.
 
 
 2. Are the functions just complex, or also long?
+Answered below.
 3. What is the purpose of the functions?
+Answered below.
 5. Is the documentation clear w.r.t. all the possible outcomes?
 Answered below.
 
@@ -90,16 +97,81 @@ According to JaCoCo:
 According to manual instrumentation:
 13/17 branches taken
 
+
+### (2,3,5) MessagingAgentCompiler#compileType (Jagan Moorthy):
+The function is pretty long(60 lines). 
+The function goes through a given class' functions and check if they have either(and not both) of the two given annotations, and check if such annotated functions are public, and places them into corresponding collections passed as parameters. It returns the count of such functions.
+Not much documentation.
+
+
+Branch coverage:
+Before: 9/11 (Assuming Loggers are covered in debug mode)
+After: 11/11
+
+
+
+### (2,3,5) RarestFirstSelectionStrategy#getNextPieces (Jagan Moorthy):
+50 line function, which can be broken down.
+The function gets statistics per torrent piece and a piece selection criteria as the input and returns a said number of pieces. In addition to the passed criteria, it selects the least frequent peices in a random way.
+No documentation available in the overridden function, but the base class has some info.
+
+Branch coverage:
+Before: 6/9 (Assuming Loggers are covered in debug mode)
+After: 9/9
+
+
+
+### (2,3,5) Assignments#update
+Purpose:
+
+This function returns a set of other peers that contain pieces that are interesting to the current peer and that can be
+given assignments. The CCN is high for a few reasons. There are multiple null checks, and checks to see if certain 
+logging traces are enabled or not. Given a certain peer (which itself requires some branches to identify if it's a valid peer),
+checking to see if it has important/interesting pieces results in multiple loop iterations and if statements.
+
+This is a fairly long function, at 63 lines of code. Again, no documentation is given so logging wasn't super helpful by itself.
+
+Manual cyclomatic complexity (M = pi - s + 2):
+M = 17 - 1 + 2 = 18
+
+
+### (2,3,5) Assignments#assign
+Purpose:
+
+This function selects a piece the current peer has and assigns it to another peer that has been given to the function.
+There are multiple reasons why many branches exist in this funciton. A few have to do with the nature of the assigning
+which requires constant checking of the bit iterator to see if more pieces need to be assigned. Another has to do with
+seeing if certain log traces are enabled our not. No exceptions are made here, so they are not taken into account in the CCN.
+
+This is a fairly long function, at 65 lines of code. Again, no documentation is given so logging wasn't super helpful by itself.
+
+Manual cyclomatic complexity (M = pi - s + 2):
+M = 16 - 2 + 2 = 16
+
+
+
 ## Coverage
 
 ### Tools
 
-The project uses JaCoCo for coverage and already had it integrated with its build environment.
+Johan: The project uses JaCoCo for coverage and already had it integrated with its build environment.
 How to use the tool in this project was completely undocumented so at first I had to look around for
 instructions on how to use the tool through Google. I did this for about 2 hours without any real gains being made.
 Finally I found a Travis script in the scripts folder called "travis-run-tests.sh" which ran the tests with code coverage on.
 So yes, the experience in using this tool was terrible because of a lack of in-project documentation.
 The JaCoCo project's documentation however was fine.
+
+
+Jagan:
+I used Intellij's inbuilt code coverage plug-in to avoid hassles. It was very well documented. I got to use Mockito for the first time and it was a good exposure.
+
+Nikhil: Upvote to what Johan said about the poor documentation of Jacoco on the bt README. I had a bit more trouble
+trying to get it to work on my Ubuntu machine. Neither the bash script nor the mvn install command inside the script
+worked for me initially. Errors pointing to other maven plugins would prevent any reports from being created.
+After hours and hours of troubleshooting I finally found out that simply updating the Jacoco plugin version from 
+0.7.8 to 0.8.2 would work, and it did.
+
+
 
 ### DYI
 
@@ -133,6 +205,9 @@ The old coverage by JaCoCo can be found in the oldcoverage/ directory.
 ConnectionSource#getConnectionAsync:
 MetadataService#buildTorrent:
 
+Jagan:
+I used IntelliJ's inbuilt code coverage tool, as it seemed to avoid a lot of hassles and was documented pretty clearly. The results of my coverage(both before and afer) are available as images under the oldcoverage/methodName directory
+
 Report of new coverage: [link]
 The new coverage by JaCoCo can be found in the respective target/ directories.
 ConnectionSource#getConnectionAsync:
@@ -141,6 +216,10 @@ MetadataService#buildTorrent: Not applicable
 Test cases added:
 ConnectionSource#getConnectionAsync: Two: Check for unreachable peers and already existing connections
 MetadataService#buildTorrent: None
+
+MessagingAgentCompiler#compileType: 2 test case for non-public function and a function with both annotations assigned
+RarestFirstSelectionStrategy#getNextPieces: One test case to handle the randomized selection branch.
+
 
 git diff ...
 
@@ -202,6 +281,37 @@ All the null-checking can be replace with the new Java Optional class. The issue
 
 L244-269: Gather out the tracker URLs. This can easily be refactored into a method.
 
+Assignments#update:
+
+Like with the assign function (see below), I would abstract out all mentions and checks of LOGGER.isTraceEnabled. There are only 2 in this function,
+but 1 of them is within a loop. Additionally, there are 2 separate if statements that check to see if a specific object is null. One checks to see if
+the object (queue) is null, and the other checks to see if it's not null. Creating this null check only once and when it is immediately initialized can 
+reduce the need to check it again later. There is also a check for the size of the object (queue) that is done twice. Abstracting that out as well 
+(assuming the object is not null) can prevent the function from needing to check it twice.
+
+Assignments#assign:
+
+The first thing I would do with this function, is abstract out all mentions and checks of LOGGER.isTraceEnabled. This check is made at least 6 times
+in the function, 4 of which are in a do-while loop. Removing that if statement alone and calling it once in a helper logging function can simplify the code.
+I would also create a separate function for the iteration of pieces (peers) as it is already nested in the else block of the endgame check. In fact, a return could be
+made after identifying a peer as endgame to avoid ever having to walk into the else branch.
+
+
+RarestFirstSelectionStrategy#getNextPieces:
+Note: The line numbers mentioned are with the manual code coverage logging lines included.
+The first level of breaking up would be to take off lines 114 to 129 as a separate function for randomization.
+The next level can be would be to isolate the logic in lines from 89 to 96 as it iterates through the piece stats to "pack" certain pieces.
+
+MessagingAgentCompiler#compileType:
+Note: The line numbers mentioned are with the manual code coverage logging lines included.
+
+1. We can move the validation of function annotations and access modifiers 127-134 to a validateMethod() function
+2. The remaining part is primarily clogged with logging and is a simple enough if-else condition, but given the similarity in the content, it has a minor scope for code re-use by having another method that can be called within the if and else(But the called function will in-turn have an if-else and may take us back to square one).
+
+
+
+
+
 Carried out refactoring (optional)
 
 ## Effort spent
@@ -209,33 +319,52 @@ Carried out refactoring (optional)
 For each team member, how much time was spent in
 
 1. plenary discussions/meetings;
-Johan: 2 hours
-Nikhil: 2 hours
-Jagan: 2 hours
-Tom: 0 hours (was ill)
+- Johan: 2 hours
+- Nikhil: 2 hours
+- Jagan: 2 hours
+- Tom: 0 hours (was ill)
 
 2. discussions within parts of the group;
-Johan: 10 minutes or so
+- Johan: 10 minutes or so
+- Nikhil:  around 20 minutes asking about Jacoco
 
 3. reading documentation;
-Johan: 1 hour
+- Johan: 1 hour
+- Nikhil: around 30 min on bt, 1 hour on Jacoco
+- Jagan: 30 mins
 
 4. configuration;
+- Nikhil: 4 hours (Spent 2 days trying to configure Jacoco)
 
 5. analyzing code/output;
-Johan: 4 hours
+- Johan: 4 hours
+- Nikhil: 2 hours
+- Jagan: 6 hours. Was struggling with test cases before using Mockito, as I tried to build all dependency objects myself.
 
 6. writing documentation (writing report?));
-Johan: 6 hours
+- Johan: 6 hours
+- Nikhil: 2.5 hours
+- Jagan: 1 hour
+
 
 7. writing code;
-Johan: 6 hour
+- Johan: 6 hours
+- Nikhil:
+- Jagan: 3 hours
 
 8. running code?
-Johan: Many hours?
+- Johan: Many hours?
+- Nikhil: Not sure what this refers to but see above for more accurate division
 
 ## Overall experience
 
 What are your main take-aways from this project? What did you learn?
+
+
+CCN seems to be a good metric to check for possible potentially buugy code. It's good practice to ensure functions with high CCNs are 
+  1. Refactored into possible chunks, if possible
+  2. Else, adequately unit tested to ensure future code doesn't break stuff
+
+Though code coverage is a reasonably good method, it's not 100% fool-proof and can still be worked around due to short-circuits in conditions(especially weak if the focus is to only write test cases for high CCN functions ).
 
 Is there something special you want to mention here?

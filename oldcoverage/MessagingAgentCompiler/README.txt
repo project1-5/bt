@@ -1,0 +1,1 @@
+2/11 branches were uncovered(Assuming Loggers are covered in debug mode). Those 2 were covered with 2 Test cases
