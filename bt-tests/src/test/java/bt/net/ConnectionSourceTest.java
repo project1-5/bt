@@ -99,4 +99,43 @@ public class ConnectionSourceTest {
 	}
     }
 
+    /**
+       Reject new connection when the connection limit has been reached.
+     **/
+    @Test
+    public void rejectConnectionLimit()
+	throws Exception {
+	Set<PeerConnectionAcceptor> hs = mock(HashSet.class);
+	when(hs.size()).thenReturn(1);
+	PeerConnectionFactory pcf = mock(PeerConnectionFactory.class);
+	PeerConnectionPool pcp = mock(PeerConnectionPool.class);
+	PeerConnection mocked = mock(PeerConnection.class);
+	when(pcp.getConnection(isA(ConnectionKey.class))).thenReturn(null);
+	when(pcp.size()).thenReturn(1);
+	RuntimeLifecycleBinder rlb = mock(RuntimeLifecycleBinder.class);
+
+	Config c = mock(Config.class);
+	when(c.getUnreachablePeerBanDuration()).thenReturn(Duration.ofSeconds(0));
+	when(c.getMaxPendingConnectionRequests()).thenReturn(5);
+	ConnectionSource cs = new ConnectionSource(hs, pcf, pcp, rlb, c);
+
+
+	Field field = ConnectionSource.class.getDeclaredField("unreachablePeers");
+	field.setAccessible(true);
+	ConcurrentMap<Peer, Long> unreachablePeers = mock(ConcurrentMap.class);
+	when(unreachablePeers.get(isA(Peer.class))).thenReturn(new Long(0));
+	when(unreachablePeers.remove(isA(Peer.class), isA(Long.class))).thenReturn(true);
+	field.set(cs, unreachablePeers);
+	Peer p = mock(Peer.class);
+	TorrentId t = mock(TorrentId.class);
+	CompletableFuture<ConnectionResult> fut = cs.getConnectionAsync(p, t);
+	try {
+	    ConnectionResult cr = fut.get();
+	    assertTrue(!cr.isSuccess());
+	    assertTrue(cr.getMessage().get().equals("Connections limit exceeded"));
+	} catch(Exception e) {
+	    assertTrue(false);
+	}
+    }
+
 }
