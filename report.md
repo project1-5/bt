@@ -282,20 +282,22 @@ All the null-checking can be replace with the new Java Optional class. The issue
 
 L244-269: Gather out the tracker URLs. This can easily be refactored into a method.
 
-Assignments#update:
+ByteChannelReader#sync:
 
-Like with the assign function (see below), I would abstract out all mentions and checks of LOGGER.isTraceEnabled. There are only 2 in this function,
-but 1 of them is within a loop. Additionally, there are 2 separate if statements that check to see if a specific object is null. One checks to see if
-the object (queue) is null, and the other checks to see if it's not null. Creating this null check only once and when it is immediately initialized can 
-reduce the need to check it again later. There is also a check for the size of the object (queue) that is done twice. Abstracting that out as well 
-(assuming the object is not null) can prevent the function from needing to check it twice.
+The main issue with this function with respect to cyclomatic complexity is the fact that there are so many conditions
+to check for to figure out whether the function should throw an exception or continue reading bytes with the do while loop.
+Many times, I find it checking to see if the read buffer exceeds or is limited by some static counter in conjunction with 
+some secondary condition. Many of these can be extracted out to another helper function that lowers the complexity number
+due to the removal of the && and ||.
 
-Assignments#assign:
 
-The first thing I would do with this function, is abstract out all mentions and checks of LOGGER.isTraceEnabled. This check is made at least 6 times
-in the function, 4 of which are in a do-while loop. Removing that if statement alone and calling it once in a helper logging function can simplify the code.
-I would also create a separate function for the iteration of pieces (peers) as it is already nested in the else block of the endgame check. In fact, a return could be
-made after identifying a peer as endgame to avoid ever having to walk into the else branch.
+HttpTracker#urlEncode:
+
+The main reason why this function is so high in cyclomatic complexity is because for every character in the given string,
+we check to see if the ascii value represents a digit OR a lowercase letter OR a uppercase letter OR another valid character.
+All these extra conditionals in the if statement result in a high complexity. The main way we can reduce this is by creating
+a map that maps the range of ascii values to itself if it's a valid url character or some other value if it's an invalid character.
+This cost is trivial as insert in a hash map is O(1) and it reduces complexity as we only need a simple map lookup instead of an if statement.
 
 
 RarestFirstSelectionStrategy#getNextPieces:
