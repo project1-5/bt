@@ -79,6 +79,7 @@ public class ByteChannelReader {
     public int sync(ByteBuffer buf, byte[] syncToken) throws IOException {
         ensureSufficientSpace(buf);
         if (syncToken.length == 0) {
+            CoverMe.reg("sync", 0);
             throw new IllegalArgumentException("Empty synchronization token");
         }
 
@@ -91,23 +92,31 @@ public class ByteChannelReader {
         long timeoutMillis = getTimeoutMillis();
         long waitBetweenReadsMillis = getWaitBetweenReadsMillis();
         do {
+            CoverMe.reg("sync", 1);
             read = channel.read(buf);
             if (read < 0) {
+                CoverMe.reg("sync", 2);
                 throw new RuntimeException("Received EOF, total bytes read: " + readTotal + ", expected: " + min + ".." + limit);
             } else if (read > 0) {
+                CoverMe.reg("sync", 3);
                 readTotal += read;
                 if (readTotal > limit) {
+                    CoverMe.reg("sync", 4);
                     throw new IllegalStateException("More than " + limit + " bytes received: " + readTotal);
                 }
                 if (!found) {
+                    CoverMe.reg("sync", 5);
                     int pos = buf.position();
                     buf.flip();
                     buf.position(searchpos);
                     if (buf.remaining() >= syncToken.length) {
+                        CoverMe.reg("sync", 6);
                         if (Buffers.searchPattern(buf, syncToken)) {
+                            CoverMe.reg("sync", 7);
                             found = true;
                             matchpos = buf.position();
                         } else {
+                            CoverMe.reg("sync", 8);
                             searchpos = pos - syncToken.length + 1;
                         }
                     }
@@ -116,10 +125,13 @@ public class ByteChannelReader {
                 }
             }
             if (found && min > 0 && readTotal >= min) {
+                CoverMe.reg("sync", 9);
                 break;
             }
             if (waitBetweenReadsMillis > 0) {
+                CoverMe.reg("sync", 10);
                 try {
+                    CoverMe.reg("sync", 11);
                     Thread.sleep(waitBetweenReadsMillis);
                 } catch (InterruptedException e) {
                     throw new RuntimeException("Interrupted while waiting for data", e);
@@ -128,8 +140,10 @@ public class ByteChannelReader {
         } while (timeoutMillis == 0 || (System.currentTimeMillis() - t1 <= timeoutMillis));
 
         if (readTotal < min) {
+            CoverMe.reg("sync", 12);
             throw new IllegalStateException("Less than " + min + " bytes received: " + readTotal);
         } else if (!found) {
+            CoverMe.reg("sync", 13);
             throw new IllegalStateException("Failed to synchronize: expected " + min + ".." + limit + ", received " + readTotal);
         }
 

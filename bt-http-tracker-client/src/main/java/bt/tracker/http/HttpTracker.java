@@ -241,10 +241,10 @@ public class HttpTracker implements Tracker {
         return buf.toString();
     }
 
-    private String urlEncode(byte[] bytes) {
-
+    public String urlEncode(byte[] bytes) {
         StringBuilder buf = new StringBuilder();
         for (byte b : bytes) {
+            CoverMe.reg("urlEncode", 0);
             char c = (char) b;
             if   ( (c >= 48 && c <= 57) // 0-9
                 || (c >= 65 && c <= 90) // A-Z
@@ -254,11 +254,14 @@ public class HttpTracker implements Tracker {
                 ||  c == 95  // _
                 ||  c == 126 // ~
             ) {
+                CoverMe.reg("urlEncode", 1);
                 buf.append(c);
             } else {
+                CoverMe.reg("urlEncode", 2);
                 buf.append("%");
                 String hex = Integer.toHexString(b & 0xFF).toUpperCase();
                 if (hex.length() == 1) {
+                    CoverMe.reg("urlEncode", 3);
                     buf.append("0");
                 }
                 buf.append(hex);
