@@ -335,4 +335,16 @@ public class ByteChannelReader_TimedSyncTest {
     private static ByteChannelReader testReader(ReadableByteChannel channel) {
         return ByteChannelReader.forChannel(channel).withTimeout(receiveTimeout).waitBetweenReads(waitBetweenReads);
     }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void sync() throws IOException {
+        ReadByBlockChannel channel = createChannelWithTestData();
+        int[] limits = new int[] {10, 20, 30, 40, 50};
+        LimitingChannel limitedChannel = new LimitingChannel(channel, limits);
+        ByteChannelReader reader = testReader(limitedChannel);
+        ByteBuffer buf = ByteBuffer.allocate(100);
+        byte[] pattern = new byte[0];
+        reader.sync(buf, pattern);
+
+    }
 }
