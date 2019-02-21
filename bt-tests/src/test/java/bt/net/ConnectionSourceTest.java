@@ -39,7 +39,7 @@ public class ConnectionSourceTest {
 	}
     }
     /**
-       Given an already existing connection return that one.
+       Given an already existing connection ensure that one is returned.
      **/
     @Test
     public void acceptExistingConnection()
@@ -59,6 +59,40 @@ public class ConnectionSourceTest {
 	assertTrue(fut.get().isSuccess());
     }
 
+    /**
+       Given an already pending connection ensure that one is returned.
+     **/
+    @Test
+    public void acceptPendingConnection()
+	throws Exception {
+	Set<PeerConnectionAcceptor> hs = mock(HashSet.class);
+	when(hs.size()).thenReturn(1);
+	PeerConnectionFactory pcf = mock(PeerConnectionFactory.class);
+	PeerConnectionPool pcp = mock(PeerConnectionPool.class);
+	when(pcp.getConnection(isA(ConnectionKey.class))).thenReturn(mock(PeerConnection.class));
+	RuntimeLifecycleBinder rlb = mock(RuntimeLifecycleBinder.class);
+	Config c = mock(Config.class);
+	when(c.getMaxPendingConnectionRequests()).thenReturn(5);
+	ConnectionSource cs = new ConnectionSource(hs, pcf, pcp, rlb, c);
+	Peer p = mock(Peer.class);
+	TorrentId t = mock(TorrentId.class);
+
+
+	Field field = ConnectionSource.class.getDeclaredField("pendingConnections");
+	field.setAccessible(true);
+	Field modifiersField = Field.class.getDeclaredField( "modifiers" );
+	modifiersField.setAccessible( true );
+	modifiersField.setInt( field, field.getModifiers() & ~Modifier.FINAL );
+	
+	CompletableFuture<ConnectionResult> mockResult = mock(CompletableFuture.class);
+
+	Map<ConnectionKey, CompletableFuture<ConnectionResult>> pendingConnections = mock(ConcurrentMap.class);
+	when(pendingConnections.get(isA(ConnectionKey.class))).thenReturn(mockResult);
+	field.set(cs, pendingConnections);
+
+	CompletableFuture<ConnectionResult> fut = cs.getConnectionAsync(p, t);
+	assertTrue(fut.get().isSuccess());
+    }
     /**
        Ensure that unreachable peers are rejected.
     **/
