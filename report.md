@@ -351,8 +351,8 @@ For each team member, how much time was spent in
 
 
 7. writing code;
-- Johan: 6 hours
-- Nikhil: 3 hours
+- Johan: 10 hours
+- Nikhil: 4 hours
 - Jagan: 3 hours
 
 8. running code?
@@ -371,3 +371,35 @@ CCN seems to be a good metric to check for possible potentially buggy code. It's
 Though code coverage is a reasonably good method, it's not 100% fool-proof and can still be worked around due to short-circuits in conditions(especially weak if the focus is to only write test cases for high CCN functions ).
 
 Is there something special you want to mention here?
+
+
+## P Plus Johan Sjölén
+
+The code is available here:
+
+https://github.com/project1-5/bt/tree/feat_35_pplus
+
+The tests are in bt/bt-tests/src/test/java/bt/net/ConnectionSourceTest.java
+The refactorings are in: bt/bt-core/src/main/java/bt/net/ConnectionSource.java
+
+and in: bt/bt-core/src/main/java/bt/metainfo/MetadataService.java
+
+Refactorings:
+
+MetadataService#buildTorrent
+Old CCN: 19
+New CCN: 11
+Diff: 57% of original
+
+ConnectionSource#getConnectionAsync
+Old CCN: 20
+New CCN: 14
+Diff: 70% of original
+
+Diff together: 64% of original (36% reduction)
+
+Unit tests:
+
+4 tests in ConnectionSource#getConnectionAsync (MetadataService#buildTorrent had very high coverage)
+
+
