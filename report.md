@@ -121,32 +121,33 @@ After: 9/9
 
 
 
-### (2,3,5) Assignments#update
+
+### (2,3,5) HttpTracker#urlEncode
 Purpose:
 
-This function returns a set of other peers that contain pieces that are interesting to the current peer and that can be
-given assignments. The CCN is high for a few reasons. There are multiple null checks, and checks to see if certain 
-logging traces are enabled or not. Given a certain peer (which itself requires some branches to identify if it's a valid peer),
-checking to see if it has important/interesting pieces results in multiple loop iterations and if statements.
+This function returns a string that is url-friendly. Given a string to encode into a url, the function will convert the
+string into a url-friendly format, taking out characters that cannot be in a url. This function is used to ultimately build
+a url with a string builder in the HttpTracker class.
 
-This is a fairly long function, at 63 lines of code. Again, no documentation is given so logging wasn't super helpful by itself.
+This is a fairly short function, at 28 lines of code.
 
 Manual cyclomatic complexity (M = pi - s + 2):
-M = 17 - 1 + 2 = 18
+M = 12 - 1 + 2 = 13
 
 
-### (2,3,5) Assignments#assign
+
+### (2,3,5) ByteChannelReader#sync
 Purpose:
 
-This function selects a piece the current peer has and assigns it to another peer that has been given to the function.
-There are multiple reasons why many branches exist in this funciton. A few have to do with the nature of the assigning
-which requires constant checking of the bit iterator to see if more pieces need to be assigned. Another has to do with
-seeing if certain log traces are enabled our not. No exceptions are made here, so they are not taken into account in the CCN.
+This function is crucial in the process of UDP communications. The purpose of this function is to make sure that the 
+number of bytes actually read into a buffer is equal to the number of bytes expected in the communication process. This 
+is done by continually reading into a buffer until you no longer can. Then you continuously check to see if you exceeded the 
+number of bytes expected to sync the expected with actual. Exceptions are thrown if it is not synced properly. 
 
-This is a fairly long function, at 65 lines of code. Again, no documentation is given so logging wasn't super helpful by itself.
+This is a fairly long function, at 74 lines of code. Again, no documentation is given so logging wasn't super helpful by itself.
 
 Manual cyclomatic complexity (M = pi - s + 2):
-M = 16 - 2 + 2 = 16
+M = 16 - 1 + 2 = 17
 
 
 
@@ -281,20 +282,22 @@ All the null-checking can be replace with the new Java Optional class. The issue
 
 L244-269: Gather out the tracker URLs. This can easily be refactored into a method.
 
-Assignments#update:
+ByteChannelReader#sync:
 
-Like with the assign function (see below), I would abstract out all mentions and checks of LOGGER.isTraceEnabled. There are only 2 in this function,
-but 1 of them is within a loop. Additionally, there are 2 separate if statements that check to see if a specific object is null. One checks to see if
-the object (queue) is null, and the other checks to see if it's not null. Creating this null check only once and when it is immediately initialized can 
-reduce the need to check it again later. There is also a check for the size of the object (queue) that is done twice. Abstracting that out as well 
-(assuming the object is not null) can prevent the function from needing to check it twice.
+The main issue with this function with respect to cyclomatic complexity is the fact that there are so many conditions
+to check for to figure out whether the function should throw an exception or continue reading bytes with the do while loop.
+Many times, I find it checking to see if the read buffer exceeds or is limited by some static counter in conjunction with 
+some secondary condition. Many of these can be extracted out to another helper function that lowers the complexity number
+due to the removal of the && and ||.
 
-Assignments#assign:
 
-The first thing I would do with this function, is abstract out all mentions and checks of LOGGER.isTraceEnabled. This check is made at least 6 times
-in the function, 4 of which are in a do-while loop. Removing that if statement alone and calling it once in a helper logging function can simplify the code.
-I would also create a separate function for the iteration of pieces (peers) as it is already nested in the else block of the endgame check. In fact, a return could be
-made after identifying a peer as endgame to avoid ever having to walk into the else branch.
+HttpTracker#urlEncode:
+
+The main reason why this function is so high in cyclomatic complexity is because for every character in the given string,
+we check to see if the ascii value represents a digit OR a lowercase letter OR a uppercase letter OR another valid character.
+All these extra conditionals in the if statement result in a high complexity. The main way we can reduce this is by creating
+a map that maps the range of ascii values to itself if it's a valid url character or some other value if it's an invalid character.
+This cost is trivial as insert in a hash map is O(1) and it reduces complexity as we only need a simple map lookup instead of an if statement.
 
 
 RarestFirstSelectionStrategy#getNextPieces:
@@ -338,8 +341,8 @@ For each team member, how much time was spent in
 
 5. analyzing code/output;
 - Johan: 4 hours
-- Nikhil: 2 hours
 - Jagan: 6 hours. Was struggling with test cases before using Mockito, as I tried to build all dependency objects myself.
+- Nikhil: 3 hours
 
 6. writing documentation (writing report?));
 - Johan: 6 hours
@@ -349,7 +352,7 @@ For each team member, how much time was spent in
 
 7. writing code;
 - Johan: 10 hours
-- Nikhil:
+- Nikhil: 4 hours
 - Jagan: 3 hours
 
 8. running code?
@@ -361,7 +364,7 @@ For each team member, how much time was spent in
 What are your main take-aways from this project? What did you learn?
 
 
-CCN seems to be a good metric to check for possible potentially buugy code. It's good practice to ensure functions with high CCNs are 
+CCN seems to be a good metric to check for possible potentially buggy code. It's good practice to ensure functions with high CCNs are 
   1. Refactored into possible chunks, if possible
   2. Else, adequately unit tested to ensure future code doesn't break stuff
 
